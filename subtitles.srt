@@ -1,0 +1,71 @@
+1
+00:00:01,000 --> 00:00:04,000
+Classroom Presence Verification System
+
+2
+00:00:05,000 --> 00:00:08,000
+Starting a new attendance session.
+
+3
+00:00:09,000 --> 00:00:12,000
+Both ESP32 nodes are online and ready to scan.
+
+4
+00:00:13,000 --> 00:00:16,000
+Registered BLE devices are being discovered.
+
+5
+00:00:18,000 --> 00:00:21,000
+Device advertisement detected — 1 of 3 required hits.
+
+6
+00:00:25,000 --> 00:00:28,000
+Detection count increased to 2 of 3.
+
+7
+00:00:32,000 --> 00:00:35,000
+Both nodes have reached the detection threshold.
+
+8
+00:00:36,000 --> 00:00:39,000
+Kavin and Lohith are detected by both nodes.
+
+9
+00:00:42,000 --> 00:00:45,000
+Presence is evaluated at each attendance check.
+
+10
+00:00:55,000 --> 00:00:59,000
+Both students are currently above the 75% presence requirement.
+
+11
+00:01:25,000 --> 00:01:29,000
+Lohith moves outside Node 2's detection range. Node 1 still detects him.
+
+12
+00:01:30,000 --> 00:01:34,000
+Node 2 no longer detects Lohith; the node itself remains online.
+
+13
+00:01:45,000 --> 00:01:49,000
+Lohith leaves Node 1's detection range as well.
+
+14
+00:01:50,000 --> 00:01:54,000
+Neither node currently detects Lohith, while Kavin remains detected by both.
+
+15
+00:02:20,000 --> 00:02:25,000
+Lohith's continuous-absence threshold is reached; his projected status becomes Absent.
+
+16
+00:02:30,000 --> 00:02:33,000
+Ending the session to calculate final attendance.
+
+17
+00:02:36,000 --> 00:02:40,000
+Final attendance results have been saved to the CSV log.
+
+18
+00:02:45,000 --> 00:02:48,000
+Attendance report downloaded successfully.
