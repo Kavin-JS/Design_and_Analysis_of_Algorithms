@@ -3,7 +3,11 @@ const path = require('path');
 const fs = require('fs');
 
 (async () => {
-  const browser = await chromium.launch();
+  // Launch Chromium with explicit window size to fix the blank space issue
+  const browser = await chromium.launch({
+    args: ['--window-size=1920,1080']
+  });
+  
   const context = await browser.newContext({
     recordVideo: { dir: 'videos/', size: { width: 1920, height: 1080 } },
     viewport: { width: 1920, height: 1080 }
