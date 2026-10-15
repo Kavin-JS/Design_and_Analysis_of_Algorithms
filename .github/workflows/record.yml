@@ -1,0 +1,42 @@
+name: Generate Dashboard Recording
+
+on:
+  workflow_dispatch:
+
+jobs:
+  record-dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm init -y
+          npm install playwright
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Run Playwright Script
+        run: node record.js
+
+      - name: Convert WebM to MP4 and Burn Subtitles
+        run: |
+          ffmpeg -i raw_recording.webm -vf "subtitles=subtitles.srt" -c:v libx264 -preset fast -y BLE_Classroom_Presence_Demo.mp4
+
+      - name: Upload MP4 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BLE_Classroom_Presence_Demo
+          path: BLE_Classroom_Presence_Demo.mp4
