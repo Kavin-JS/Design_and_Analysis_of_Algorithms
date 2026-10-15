@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classroom presence</title>
+<style>
+  :root {
+    --ground: #e9efee;
+    --grid: #d6e0de;
+    --paper: #fbfcfb;
+    --ink: #18242b;
+    --ink-soft: #52646d;
+    --line: #c9d5d3;
+    --n1: #2a5bd7;
+    --n2: #c4327d;
+    --ok: #1c7c54;
+    --ok-bg: #dcf0e6;
+    --warn: #a4530a;
+    --warn-bg: #fbe9d3;
+    --bad: #b3261e;
+    --bad-bg: #f9dcd9;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light; }
+
+  body {
+    margin: 0;
+    background-color: var(--ground);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.45;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 22px 22px 60px; }
+
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, a:focus-visible, dialog:focus-visible {
+    outline: 3px solid var(--n1);
+    outline-offset: 2px;
+  }
+
+  /* ---------- masthead ---------- */
+  .mast {
+    display: flex; flex-wrap: wrap; align-items: flex-end;
+    justify-content: space-between; gap: 16px;
+    padding-bottom: 14px; border-bottom: 2px solid var(--ink);
+  }
+  .mast h1 {
+    font-family: var(--serif); font-weight: 700; font-size: 34px;
+    letter-spacing: -0.01em; margin: 0; line-height: 1.05;
+  }
+  .mast p { margin: 6px 0 0; color: var(--ink-soft); max-width: 62ch; }
+  .mast-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .clock { font-family: var(--serif); font-size: 26px; line-height: 1; }
+  .session { color: var(--ink-soft); font-size: 13px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  .btn {
+    border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink);
+    padding: 7px 14px; border-radius: 6px; font-weight: 600; font-size: 14px;
+    text-decoration: none; display: inline-block;
+  }
+  .btn:hover { background: var(--ink); color: var(--paper); }
+  .btn.primary { background: var(--ink); color: var(--paper); }
+  .btn.primary:hover { background: var(--n1); border-color: var(--n1); }
+  .btn.danger { border-color: var(--bad); color: var(--bad); }
+  .btn.danger:hover { background: var(--bad); color: #fff; }
+
+  .banner {
+    display: none; margin-top: 14px; padding: 10px 14px; border-radius: 6px;
+    font-weight: 600;
+  }
+  .banner.show { display: block; }
+  .banner.bad { background: var(--bad-bg); color: var(--bad); }
+  .banner.warn { background: var(--warn-bg); color: var(--warn); }
+  .banner.done { background: var(--ok-bg); color: var(--ok); }
+
+  /* ---------- summary ---------- */
+  .summary {
+    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px; margin-top: 22px; align-items: stretch;
+  }
+  .headline { font-family: var(--serif); font-size: 30px; line-height: 1.15; margin: 0; }
+  .headline-sub { display: block; font-family: var(--sans); font-size: 14px; color: var(--ink-soft); margin-top: 8px; }
+
+  .node {
+    background: var(--paper); border: 1.5px solid var(--line);
+    border-top: 5px solid var(--nc); padding: 12px 14px 12px;
+  }
+  .node.n1 { --nc: var(--n1); }
+  .node.n2 { --nc: var(--n2); }
+  .node.off { border-top-color: #9aa8ad; background: #f1f4f3; }
+  .node-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .node h2 { font-family: var(--serif); font-size: 20px; margin: 0; }
+  .state { font-weight: 700; font-size: 13px; padding: 2px 9px; border-radius: 99px; }
+  .state.on { background: var(--ok-bg); color: var(--ok); }
+  .state.off { background: var(--bad-bg); color: var(--bad); }
+  .state.wait { background: var(--warn-bg); color: var(--warn); }
+  dl.facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 10px 0 0; font-size: 13.5px; }
+  dl.facts dt { color: var(--ink-soft); }
+  dl.facts dd { margin: 0; text-align: right; }
+  .bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 13px; margin-right: 6px; vertical-align: -1px; }
+  .bars i { width: 4px; background: var(--line); display: block; }
+  .bars i.on { background: var(--ink); }
+  .bars i:nth-child(1) { height: 30%; } .bars i:nth-child(2) { height: 52%; }
+  .bars i:nth-child(3) { height: 76%; } .bars i:nth-child(4) { height: 100%; }
+
+  /* ---------- diagram + feed ---------- */
+  .stage { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 18px; margin-top: 22px; }
+  .panel { background: var(--paper); border: 1.5px solid var(--line); padding: 16px 18px 18px; }
+  .panel h2 { font-family: var(--serif); font-size: 21px; margin: 0 0 2px; }
+  .panel .sub { margin: 0 0 12px; color: var(--ink-soft); font-size: 13.5px; }
+
+  svg.link { width: 100%; height: auto; display: block; }
+  svg.link text { font-family: var(--sans); fill: var(--ink); }
+  svg.link .muted { fill: var(--ink-soft); }
+  svg.link .wire { fill: none; stroke-linecap: round; transition: stroke-width .4s, opacity .4s; }
+  svg.link .wire.quiet { stroke: #aebbbe; stroke-dasharray: 4 6; stroke-width: 1.5; opacity: .8; }
+  svg.link .pill { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+  svg.link .pill.ok { fill: var(--ok-bg); stroke: var(--ok); }
+  svg.link .pill.warn { fill: var(--warn-bg); stroke: var(--warn); }
+  svg.link .pill.bad { fill: var(--bad-bg); stroke: var(--bad); }
+  svg.link .pill.idle { fill: #eef1f0; stroke: #9aa8ad; }
+  svg.link .nodebox { stroke-width: 2; }
+
+  .feed { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow-y: auto; }
+  .feed li { display: grid; grid-template-columns: 62px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .feed li:first-child { border-top: 0; }
+  .feed time { color: var(--ink-soft); font-size: 13px; }
+  .feed .msg { position: relative; padding-left: 14px; }
+  .feed .msg::before { content: ""; position: absolute; left: 0; top: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-soft); }
+  .feed .arrived .msg::before { background: var(--ok); }
+  .feed .returned .msg::before { background: var(--n1); }
+  .feed .left .msg::before { background: var(--bad); }
+  .feed .left .msg { font-weight: 600; }
+  .feed .node .msg::before { background: var(--warn); }
+  .feed .class .msg::before { background: var(--ink); }
+  .feed .class .msg { font-weight: 600; }
+  .empty { color: var(--ink-soft); padding: 10px 0; }
+
+  /* ---------- students ---------- */
+  .section { margin-top: 22px; }
+  .student { padding: 14px 0; border-top: 1px solid var(--line); }
+  .student:first-of-type { border-top: 0; }
+  .row {
+    display: grid; grid-template-columns: minmax(180px, 1.2fr) 190px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px; align-items: center;
+  }
+  .who b { font-family: var(--serif); font-size: 18px; display: block; }
+  .who span { color: var(--ink-soft); font-size: 13px; }
+  .badge { display: inline-block; padding: 3px 11px; border-radius: 99px; font-weight: 700; font-size: 13px; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.no { background: #e6ecea; color: var(--ink-soft); }
+  .badge.live { background: var(--warn-bg); color: var(--warn); }
+  .badge.bad { background: var(--bad-bg); color: var(--bad); }
+  .when { display: block; color: var(--ink-soft); font-size: 12.5px; margin-top: 4px; }
+
+  .obs { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; font-size: 13px; }
+  .obs .nm { font-weight: 700; color: var(--nc); }
+  .obs.n1 { --nc: var(--n1); } .obs.n2 { --nc: var(--n2); }
+  .pips { display: inline-flex; gap: 4px; align-items: center; }
+  .pips i { width: 12px; height: 12px; border: 1.5px solid var(--nc); border-radius: 50%; display: block; }
+  .pips i.on { background: var(--nc); }
+  .pips b { margin-left: 6px; font-weight: 600; }
+  .obs .spark { grid-column: 1 / -1; }
+  .obs svg { width: 100%; height: 30px; display: block; }
+  .rssi-note { color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 0; }
+
+  .extra { margin-top: 12px; display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 4px 16px; align-items: end; }
+  .extra .lbl { font-size: 12.5px; color: var(--ink-soft); }
+  .tl { display: flex; align-items: flex-end; gap: 2px; height: 34px; border-bottom: 2px solid var(--ink); }
+  .tl i { flex: 1 1 0; min-width: 2px; display: block; border-radius: 2px 2px 0 0; }
+  .tl-empty { color: var(--ink-soft); font-size: 13px; align-self: center; }
+  .facts-line { grid-column: 2; font-size: 13.5px; color: var(--ink-soft); }
+  .facts-line b.ok { color: var(--ok); }
+  .facts-line b.bad { color: var(--bad); }
+  .key { grid-column: 2; font-size: 12px; color: var(--ink-soft); }
+
+  /* ---------- history ---------- */
+  .scroll-x { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 720px; }
+  th { text-align: left; font-weight: 600; color: var(--ink-soft); padding: 6px 10px; border-bottom: 2px solid var(--ink); font-size: 13px; }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num, th.num { text-align: right; }
+
+  /* ---------- toast + dialog ---------- */
+  .toasts { position: fixed; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 20; }
+  .toast {
+    background: var(--ink); color: #fff; padding: 12px 16px; border-radius: 8px;
+    border-left: 6px solid #4fd39a; font-weight: 600; max-width: 340px;
+    animation: pop .25s ease-out;
+  }
+  .toast.bad { border-left-color: #ff8a80; }
+  @keyframes pop { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  dialog {
+    border: 2px solid var(--ink); border-radius: 10px; padding: 22px; max-width: 440px;
+    background: var(--paper); color: var(--ink);
+  }
+  dialog::backdrop { background: rgba(24, 36, 43, .55); }
+  dialog h3 { font-family: var(--serif); font-size: 22px; margin: 0 0 8px; }
+  dialog p { margin: 0 0 18px; color: var(--ink-soft); }
+  dialog .btns { display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 980px) {
+    .summary { grid-template-columns: 1fr 1fr; }
+    .summary > :first-child { grid-column: 1 / -1; }
+    .stage { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr 1fr; }
+    .row .who { grid-column: 1 / -1; }
+    .extra { grid-template-columns: 1fr; }
+    .facts-line, .key { grid-column: 1; }
+    .mast-right { align-items: flex-start; }
+    .actions { justify-content: flex-start; }
+  }
+  @media (max-width: 600px) {
+    .summary { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr; }
+    .mast h1 { font-size: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toast { animation: none; }
+    svg.link .wire { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <h1>Classroom presence</h1>
+      <p>Two ESP32 nodes listen for the registered BLE devices. Attendance is decided by presence across the whole class, so a student who leaves partway through is marked absent.</p>
+    </div>
+    <div class="mast-right">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="session" id="session">Waiting for the server</div>
+      <div class="actions">
+        <a class="btn" href="/api/export" id="exportBtn" download>Download CSV</a>
+        <button class="btn danger" id="discardBtn" type="button">Discard class</button>
+        <button class="btn primary" id="classBtn" type="button">End class and save</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="banner bad" id="banner" role="alert">Can't reach the Flask server. Check that server.py is still running on the laptop. This page keeps retrying.</div>
+  <div class="banner warn" id="pausedBanner" role="status"></div>
+  <div class="banner done" id="endedBanner" role="status"></div>
+
+  <section class="summary" aria-label="Summary">
+    <div>
+      <p class="headline" id="headline">Checking the room</p>
+      <span class="headline-sub" id="headlineSub"></span>
+    </div>
+    <article class="node n1" id="node1"></article>
+    <article class="node n2" id="node2"></article>
+  </section>
+
+  <section class="stage">
+    <div class="panel">
+      <h2>Who hears whom</h2>
+      <p class="sub" id="diagramSub">Lines show which node has heard each device recently.</p>
+      <div id="diagram"></div>
+    </div>
+    <div class="panel">
+      <h2>Activity</h2>
+      <p class="sub">Newest first.</p>
+      <ul class="feed" id="feed"><li class="empty">Nothing yet. Events appear when nodes connect and students arrive or leave.</li></ul>
+    </div>
+  </section>
+
+  <section class="panel section">
+    <h2>Students</h2>
+    <p class="sub" id="rulesText">Loading the attendance rules.</p>
+    <div id="devices"></div>
+    <p class="rssi-note">Signal strength is shown as measured (dBm, closer to 0 is stronger). It varies with body position, walls and phone orientation, so it is not used to decide attendance or to estimate distance.</p>
+  </section>
+
+  <section class="panel section">
+    <h2>Attendance log</h2>
+    <p class="sub">One row per student for every class that was ended and saved to data/attendance.csv, newest first.</p>
+    <div class="scroll-x">
+      <table>
+        <thead><tr>
+          <th>Class ended</th><th>Student</th><th>Roll number</th>
+          <th class="num">In range</th><th class="num">Longest absence</th><th>Result</th><th>Why</th>
+        </tr></thead>
+        <tbody id="history"><tr><td colspan="7" class="empty">No class has been saved yet.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<dialog id="endDialog">
+  <h3>End the class and save attendance?</h3>
+  <p id="endText">Each student is marked present or absent from how long they stayed in range. Press this while students are still in the room, because anyone already out of range for too long is marked absent.</p>
+  <div class="btns">
+    <button class="btn" id="cancelEnd" type="button">Keep class running</button>
+    <button class="btn primary" id="confirmEnd" type="button">End class and save</button>
+  </div>
+</dialog>
+
+<dialog id="discardDialog">
+  <h3>Discard this class?</h3>
+  <p>The current class is thrown away without saving and a new one starts now. Rows already saved in the CSV are kept. Use this for test runs.</p>
+  <div class="btns">
+    <button class="btn" id="cancelDiscard" type="button">Keep class</button>
+    <button class="btn danger" id="confirmDiscard" type="button">Discard and restart</button>
+  </div>
+</dialog>
+
+<script>
+/*
+ * Local dashboard playback harness.
+ * It leaves the original dashboard markup and styling unchanged, but supplies
+ * a timed sample-data replay instead of calling the live Flask API.
+ * This is a demo/rehearsal replay, not actual ESP32 telemetry.
+ */
+(() => {
+  "use strict";
+
+  const CHECK_MS = 7000;       // 7 seconds playback per simulated 10-second attendance check
+  const CHECK_INTERVAL_SEC = 10;
+  const PRESENCE_WINDOW_SEC = 30;
+  const MIN_DETECTIONS = 3;
+  const MIN_PERCENT = 75;
+  const MAX_ABSENCE_SEC = 30;
+  const DEVICE_INFO = [
+    { device_name: "ATTEND-KAVIN", name: "Kavin J S", roll_no: "CH.SC.U4CSE24119" },
+    { device_name: "ATTEND-LOHITH", name: "Lohith", roll_no: "CH.SC.U4CSE24153" }
+  ];
+  const NODE_IP = { NODE_1: "11.12.24.248", NODE_2: "11.12.4.250" };
+  const originalFetch = window.fetch.bind(window);
+  // Use local wall-clock time with an explicit offset so the activity feed,
+  // history, and dashboard clock agree on the displayed time.
+  const nowISO = () => {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const offset = -d.getTimezoneOffset();
+    const sign = offset >= 0 ? "+" : "-";
+    const absOffset = Math.abs(offset);
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+      "T" + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) +
+      sign + pad(Math.floor(absOffset / 60)) + ":" + pad(absOffset % 60);
+  };
+  const copy = obj => JSON.parse(JSON.stringify(obj));
+
+  let session, students, nodeInfo, events, detectionCounts, savedHistory = [], tickTimer;
+  let startedClockMs = Date.now();
+
+  function freshStudent() {
+    return {
+      present_checks: 0, absent_checks: 0, skipped_checks: 0,
+      gap_sec: 0, longest_gap_sec: 0,
+      first_present: null, last_present: null, left: false,
+      timeline: [], final_status: null, final_reason: null,
+      last_seen: null, rssi_history_node_1: [], rssi_history_node_2: []
+    };
+  }
+
+  function addEvent(kind, message) {
+    events.unshift({ time: nowISO(), kind, message });
+    if (events.length > 80) events.length = 80;
+  }
+
+  function startFresh() {
+    if (tickTimer) clearInterval(tickTimer);
+    const now = new Date();
+    startedClockMs = Date.now();
+    session = {
+      active: true, started_at: now.toISOString(), ended_at: null,
+      checks_total: 0, resume_grace_until: null, paused_reason: null,
+      resumed: false
+    };
+    students = Object.fromEntries(DEVICE_INFO.map(d => [d.device_name, freshStudent()]));
+    // Rolling demo counts start at zero and build visibly: 1, 2, then 3.
+    detectionCounts = Object.fromEntries(DEVICE_INFO.map(d => [d.device_name, {
+      NODE_1: 0, NODE_2: 0
+    }]));
+    nodeInfo = {
+      NODE_1: { online: true, ip: NODE_IP.NODE_1, wifi_rssi: -51,
+        last_heartbeat: nowISO(), heartbeat_age_sec: 0, uptime_sec: 1842,
+        free_heap: 176420 },
+      NODE_2: { online: true, ip: NODE_IP.NODE_2, wifi_rssi: -57,
+        last_heartbeat: nowISO(), heartbeat_age_sec: 0, uptime_sec: 1630,
+        free_heap: 171808 }
+    };
+    events = [];
+    addEvent("class", "New class started");
+    addEvent("node", "NODE_1 came online (" + NODE_IP.NODE_1 + ")");
+    addEvent("node", "NODE_2 came online (" + NODE_IP.NODE_2 + ")");
+
+    // Start the scan playback only when a new class is explicitly started.
+    tickTimer = setInterval(replayCheck, CHECK_MS);
+  }
+
+  // Initial landing state: a completed class from the previous session.
+  // The user sees the same finished-class controls as the original dashboard;
+  // pressing "Start new class" starts the timed scan sequence.
+  function showFinishedIntro() {
+    if (tickTimer) clearInterval(tickTimer);
+    const ended = new Date();
+    const started = new Date(ended.getTime() - 70000);
+    startedClockMs = started.getTime();
+    session = {
+      active: false,
+      started_at: started.toISOString(),
+      ended_at: ended.toISOString(),
+      checks_total: 7,
+      resume_grace_until: null,
+      paused_reason: null,
+      resumed: false
+    };
+
+    students = Object.fromEntries(DEVICE_INFO.map(d => [d.device_name, freshStudent()]));
+    const kavin = students["ATTEND-KAVIN"];
+    kavin.present_checks = 7;
+    kavin.first_present = new Date(started.getTime() + 10000).toISOString();
+    kavin.last_present = ended.toISOString();
+    kavin.timeline = [1, 1, 1, 1, 1, 1, 1];
+    kavin.final_status = "PRESENT";
+    kavin.final_reason = "in range 100% of the class";
+    kavin.last_seen = ended.toISOString();
+    kavin.rssi_history_node_1 = [-61, -60, -62, -59, -60, -61, -59];
+    kavin.rssi_history_node_2 = [-64, -63, -62, -64, -61, -63, -62];
+
+    const lohith = students["ATTEND-LOHITH"];
+    lohith.present_checks = 4;
+    lohith.absent_checks = 3;
+    lohith.gap_sec = 30;
+    lohith.longest_gap_sec = 30;
+    lohith.first_present = new Date(started.getTime() + 10000).toISOString();
+    lohith.last_present = new Date(started.getTime() + 40000).toISOString();
+    lohith.left = true;
+    lohith.timeline = [1, 1, 1, 1, 0, 0, 0];
+    lohith.final_status = "ABSENT";
+    lohith.final_reason = "out of range for 30s in a row (limit 30s)";
+    lohith.last_seen = lohith.last_present;
+    lohith.rssi_history_node_1 = [-70, -68, -72, -71];
+    lohith.rssi_history_node_2 = [-74, -73, -75, -76];
+
+    detectionCounts = {
+      "ATTEND-KAVIN": { NODE_1: 3, NODE_2: 3 },
+      "ATTEND-LOHITH": { NODE_1: 0, NODE_2: 0 }
+    };
+    nodeInfo = {
+      NODE_1: { online: true, ip: NODE_IP.NODE_1, wifi_rssi: -51,
+        last_heartbeat: nowISO(), heartbeat_age_sec: 0, uptime_sec: 1912,
+        free_heap: 176420 },
+      NODE_2: { online: true, ip: NODE_IP.NODE_2, wifi_rssi: -57,
+        last_heartbeat: nowISO(), heartbeat_age_sec: 0, uptime_sec: 1700,
+        free_heap: 171808 }
+    };
+
+    events = [];
+    addEvent("class", "Previous class ended: 1 present, 1 absent");
+    addEvent("left", "Lohith left the classroom; neither node detects him now");
+    addEvent("node", "NODE_1 and NODE_2 are online");
+    savedHistory = [
+      {
+        record_type: "SIMULATED_REPLAY",
+        class_started: started.toISOString(), class_ended: ended.toISOString(),
+        device_name: "ATTEND-KAVIN", student_name: "Kavin J S", roll_no: "CH.SC.U4CSE24119",
+        first_seen: kavin.first_present, last_seen: kavin.last_present,
+        presence_percent: 100, checks_present: 7, checks_counted: 7, checks_skipped: 0,
+        longest_absence_sec: 0, status: "PRESENT", reason: kavin.final_reason
+      },
+      {
+        record_type: "SIMULATED_REPLAY",
+        class_started: started.toISOString(), class_ended: ended.toISOString(),
+        device_name: "ATTEND-LOHITH", student_name: "Lohith", roll_no: "CH.SC.U4CSE24153",
+        first_seen: lohith.first_present, last_seen: lohith.last_present,
+        presence_percent: 57.1, checks_present: 4, checks_counted: 7, checks_skipped: 0,
+        longest_absence_sec: 30, status: "ABSENT", reason: lohith.final_reason
+      }
+    ];
+    window.__attendanceReplayCSV = createCSV(savedHistory);
+  }
+
+  // The replay changes data only; the dashboard markup/styles remain untouched.
+  // Checks 1-2 visibly build 1/3 then 2/3 detections; both nodes reach 3/3 on check 3.
+  // After check 11, NODE_2 stops detecting Lohith while NODE_1 continues to hear him
+  // for checks 12-14. Starting at check 15, NODE_1 also stops detecting Lohith.
+  // Kavin remains detected by both nodes throughout.
+  function replayCheck() {
+    if (!session.active) return;
+    const now = new Date();
+    session.checks_total += 1;
+
+    for (const n of Object.values(nodeInfo)) {
+      n.last_heartbeat = now.toISOString();
+      n.heartbeat_age_sec = 0;
+      n.uptime_sec += CHECK_INTERVAL_SEC;
+    }
+
+    const checkNo = session.checks_total;
+    if (checkNo === 12) {
+      addEvent("node", "NODE_2 no longer detects ATTEND-LOHITH; NODE_1 still detects him");
+    }
+    if (checkNo === 15) {
+      addEvent("node", "NODE_1 also stops detecting ATTEND-LOHITH; neither node detects him now");
+    }
+
+    for (const d of DEVICE_INFO) {
+      const st = students[d.device_name];
+      const counts = detectionCounts[d.device_name];
+      const isKavin = d.device_name === "ATTEND-KAVIN";
+      const node1Detects = isKavin || checkNo <= 14;
+      const node2Detects = isKavin || checkNo <= 11;
+      const rssi1 = isKavin ? -59 - (checkNo % 4) : -69 - (checkNo % 5);
+      const rssi2 = isKavin ? -62 - (checkNo % 3) : -72 - (checkNo % 4);
+
+      // Emulate one scan observation per node per playback step. When a node
+      // stops detecting a device, its recent-window count declines gradually.
+      counts.NODE_1 = node1Detects
+        ? Math.min(MIN_DETECTIONS, counts.NODE_1 + 1)
+        : Math.max(0, counts.NODE_1 - 1);
+      counts.NODE_2 = node2Detects
+        ? Math.min(MIN_DETECTIONS, counts.NODE_2 + 1)
+        : Math.max(0, counts.NODE_2 - 1);
+
+      if (node1Detects) st.rssi_history_node_1.push(rssi1);
+      if (node2Detects) st.rssi_history_node_2.push(rssi2);
+      st.rssi_history_node_1 = st.rssi_history_node_1.slice(-18);
+      st.rssi_history_node_2 = st.rssi_history_node_2.slice(-18);
+      if (node1Detects || node2Detects) st.last_seen = now.toISOString();
+
+      const inRange = counts.NODE_1 >= MIN_DETECTIONS &&
+                      counts.NODE_2 >= MIN_DETECTIONS;
+
+      if (inRange) {
+        if (st.first_present === null) {
+          st.first_present = now.toISOString();
+          addEvent("arrived", d.name + " arrived (heard by both nodes; 3 detections per node)");
+        }
+        if (st.left) {
+          st.left = false;
+          addEvent("returned", d.name + " is back in range");
+        }
+        st.longest_gap_sec = Math.max(st.longest_gap_sec, st.gap_sec);
+        st.gap_sec = 0;
+        st.present_checks += 1;
+        st.last_present = now.toISOString();
+        st.timeline.push(1);
+      } else {
+        st.absent_checks += 1;
+        st.timeline.push(0);
+        if (st.first_present !== null) {
+          st.gap_sec += CHECK_INTERVAL_SEC;
+          st.longest_gap_sec = Math.max(st.longest_gap_sec, st.gap_sec);
+          if (!st.left && st.gap_sec >= MAX_ABSENCE_SEC) {
+            st.left = true;
+            addEvent("left", d.name + " appears to have left (out of range " + st.gap_sec + "s)");
+          }
+        }
+      }
+    }
+  }
+
+  function evaluate(st) {
+    const counted = st.present_checks + st.absent_checks;
+    const pct = counted ? Math.round((100 * st.present_checks / counted) * 10) / 10 : 0;
+    const longest = Math.max(st.longest_gap_sec, st.gap_sec);
+    if (st.first_present === null) return { status: "ABSENT", reason: "never detected in class", pct, longest };
+    if (longest >= MAX_ABSENCE_SEC) return { status: "ABSENT", reason: "out of range for " + longest + "s in a row (limit 30s)", pct, longest };
+    if (pct < MIN_PERCENT) return { status: "ABSENT", reason: "in range only " + pct + "% of the class (needs 75%)", pct, longest };
+    return { status: "PRESENT", reason: "in range " + pct + "% of the class", pct, longest };
+  }
+
+  function getAttendance() {
+    return DEVICE_INFO.map(d => {
+      const st = students[d.device_name];
+      const counts = detectionCounts[d.device_name];
+      const n1 = counts.NODE_1;
+      const n2 = counts.NODE_2;
+      const inRange = n1 >= MIN_DETECTIONS && n2 >= MIN_DETECTIONS;
+      const ev = evaluate(st);
+      let state;
+      if (!session.active) state = "ended";
+      else if (st.first_present === null) state = inRange ? "arriving" : "not_arrived";
+      else if (inRange) state = "in_class";
+      else if (st.left) state = "left";
+      else state = "out_of_range";
+      return {
+        device_name: d.device_name, name: d.name, roll_no: d.roll_no,
+        node_1_detections: n1, node_2_detections: n2, in_range: inRange,
+        state, projected_status: ev.status, reason: ev.reason,
+        presence_percent: ev.pct, checks_present: st.present_checks,
+        checks_counted: st.present_checks + st.absent_checks,
+        checks_skipped: st.skipped_checks, current_gap_sec: st.gap_sec,
+        longest_absence_sec: ev.longest,
+        first_present: st.first_present, last_present: st.last_present,
+        final_status: st.final_status, final_reason: st.final_reason,
+        timeline: st.timeline.slice(-60), last_seen: st.last_seen,
+        rssi_history_node_1: st.rssi_history_node_1,
+        rssi_history_node_2: st.rssi_history_node_2
+      };
+    });
+  }
+
+  function getStatus() {
+    const elapsed = Math.max(0, Math.floor((Date.now() - startedClockMs) / 1000));
+    const out = {};
+    for (const [id, n] of Object.entries(nodeInfo)) out[id] = copy(n);
+    out._meta = {
+      server_time: nowISO(), server_uptime_sec: elapsed,
+      presence_window_sec: PRESENCE_WINDOW_SEC, min_detections: MIN_DETECTIONS,
+      require_both_nodes: true, registered_total: DEVICE_INFO.length,
+      class: {
+        active: session.active, started_at: session.started_at, ended_at: session.ended_at,
+        elapsed_sec: Math.floor(session.checks_total * CHECK_INTERVAL_SEC), remaining_sec: null,
+        duration_min: null, checks_total: session.checks_total,
+        check_interval_sec: CHECK_INTERVAL_SEC, min_presence_percent: MIN_PERCENT,
+        max_absence_sec: MAX_ABSENCE_SEC, paused_reason: null, resumed: false
+      }
+    };
+    return out;
+  }
+
+  function csvEscape(value) {
+    const s = String(value ?? "");
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function createCSV(rows) {
+    const header = ["record_type", "class_started", "class_ended", "device_name", "student_name",
+      "roll_no", "first_seen", "last_seen", "presence_percent", "checks_present",
+      "checks_counted", "checks_skipped", "longest_absence_sec", "status", "reason"];
+    return [header, ...rows.map(r => header.map(h => r[h] ?? ""))]
+      .map(row => row.map(csvEscape).join(",")).join("\r\n") + "\r\n";
+  }
+
+  function finishClass() {
+    if (!session.active) return { status: "ok", saved: true, results: DEVICE_INFO.map(d => ({ name: d.name, status: students[d.device_name].final_status, reason: students[d.device_name].final_reason })) };
+    const ended = nowISO();
+    session.active = false;
+    session.ended_at = ended;
+    const rows = [];
+    const results = [];
+    for (const d of DEVICE_INFO) {
+      const st = students[d.device_name];
+      const ev = evaluate(st);
+      st.final_status = ev.status;
+      st.final_reason = ev.reason;
+      const row = {
+        record_type: "SIMULATED_REPLAY",
+        class_started: session.started_at, class_ended: ended,
+        device_name: d.device_name, student_name: d.name, roll_no: d.roll_no,
+        first_seen: st.first_present || "", last_seen: st.last_present || "",
+        presence_percent: ev.pct, checks_present: st.present_checks,
+        checks_counted: st.present_checks + st.absent_checks,
+        checks_skipped: st.skipped_checks, longest_absence_sec: ev.longest,
+        status: ev.status, reason: ev.reason
+      };
+      rows.push(row);
+      results.push({ name: d.name, status: ev.status, reason: ev.reason });
+    }
+    savedHistory.unshift(...rows);
+    addEvent("class", "Class ended: " + results.filter(r => r.status === "PRESENT").length + " present, " + results.filter(r => r.status === "ABSENT").length + " absent");
+    window.__attendanceReplayCSV = createCSV(rows);
+    return { status: "ok", saved: true, results };
+  }
+
+  function jsonResponse(obj, status = 200) {
+    return new Response(JSON.stringify(obj), {
+      status, headers: { "Content-Type": "application/json; charset=utf-8" }
+    });
+  }
+
+  showFinishedIntro();
+  replayCheck = replayCheck.bind(null);
+
+  window.fetch = async function(input, init = {}) {
+    let rawURL = typeof input === "string" ? input : (input && input.url) || String(input);
+    let method = (init.method || (typeof Request !== "undefined" && input instanceof Request ? input.method : "GET" )).toUpperCase();
+    let path;
+    try { path = new URL(rawURL, window.location.href).pathname; }
+    catch (_) { return originalFetch(input, init); }
+
+    if (path === "/api/status" && method === "GET") return jsonResponse(getStatus());
+    if (path === "/api/attendance" && method === "GET") return jsonResponse(getAttendance());
+    if (path === "/api/events" && method === "GET") return jsonResponse(copy(events));
+    if (path === "/api/history" && method === "GET") return jsonResponse(copy(savedHistory));
+    if (path === "/api/health" && method === "GET") return jsonResponse({ server: "BLE Classroom Presence", status: "ok", time: nowISO() });
+    if (path === "/api/class/end" && method === "POST") return jsonResponse(finishClass());
+    if (path === "/api/class/start" && method === "POST") {
+      if (session.active) return jsonResponse({ status: "error", message: "A class is already running. End it first (or discard it)." }, 409);
+      startFresh();
+      return jsonResponse({ status: "ok" });
+    }
+    if (path === "/api/reset" && method === "POST") {
+      startFresh();
+      return jsonResponse({ status: "ok" });
+    }
+    if (path === "/api/export" && method === "GET") {
+      if (!window.__attendanceReplayCSV) return jsonResponse({ status: "error", message: "End class to create the CSV" }, 404);
+      return new Response(window.__attendanceReplayCSV, { headers: { "Content-Type": "text/csv; charset=utf-8" } });
+    }
+    return originalFetch(input, init);
+  };
+
+  // Keep the same dashboard link and appearance. The exported filename marks
+  // the generated file as a replay so it is not confused with live attendance.
+  document.querySelector("#exportBtn")?.addEventListener("click", event => {
+    event.preventDefault();
+    if (session.active) {
+      window.alert("End the class first to generate the attendance CSV.");
+      return;
+    }
+    const csv = window.__attendanceReplayCSV || createCSV(savedHistory);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "attendance_simulated_replay.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+})();
+</script>
+
+<script>
+"use strict";
+
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => (
+  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+));
+
+const state = {
+  meta: null,
+  nodes: { NODE_1: null, NODE_2: null },
+  devices: [],
+  metaAt: 0,
+  metaMs: 0,
+  seenEvents: new Set(),
+  firstFeed: true,
+  failures: 0,
+};
+
+const cls = () => (state.meta && state.meta.class) || null;
+
+/* ---------- time helpers ---------- */
+
+function serverNowMs() {
+  if (!state.metaMs) return Date.now();
+  return state.metaMs + (performance.now() - state.metaAt);
+}
+function ageSec(iso) {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  return Math.max(0, (serverNowMs() - t) / 1000);
+}
+function fmtAge(sec) {
+  if (sec === null) return "never";
+  if (sec < 5) return "just now";
+  if (sec < 60) return Math.round(sec) + " s ago";
+  if (sec < 3600) return Math.round(sec / 60) + " min ago";
+  return Math.round(sec / 3600) + " h ago";
+}
+function fmtDuration(sec) {
+  if (sec === null || sec === undefined) return "unknown";
+  sec = Math.floor(sec);
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  if (h) return h + "h " + String(m).padStart(2, "0") + "m";
+  if (m) return m + "m " + String(s).padStart(2, "0") + "s";
+  return s + "s";
+}
+// ISO timestamps are stored in UTC by toISOString(). Display them in the
+// browser's local timezone so the activity feed matches the dashboard clock.
+const hms = (iso) => (iso ? new Date(iso).toLocaleTimeString([], { hour12: false }) : "");
+
+function localDateTime(iso) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? String(iso).replace("T", " ")
+    : date.toLocaleString([], { hour12: false });
+}
+
+/* ---------- network ---------- */
+
+async function getJSON(url) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 4000);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, cache: "no-store" });
+    if (!res.ok) throw new Error(url + " returned " + res.status);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function markReachable(ok) {
+  state.failures = ok ? 0 : state.failures + 1;
+  $("#banner").classList.toggle("show", state.failures >= 2);
+}
+
+/* ---------- nodes ---------- */
+
+function wifiBars(rssi) {
+  let n = 0;
+  if (typeof rssi === "number") n = rssi > -55 ? 4 : rssi > -65 ? 3 : rssi > -75 ? 2 : rssi > -85 ? 1 : 0;
+  return '<span class="bars" aria-hidden="true">' +
+    [1, 2, 3, 4].map((i) => '<i class="' + (i <= n ? "on" : "") + '"></i>').join("") + "</span>";
+}
+
+function renderNode(el, id, label, info) {
+  if (!info) {
+    el.classList.add("off");
+    el.innerHTML = '<div class="node-head"><h2>' + label + '</h2><span class="state wait">Waiting</span></div>' +
+      '<p class="empty">No data yet.</p>';
+    return;
+  }
+  const online = info.online;
+  el.classList.toggle("off", !online);
+  const hb = info.heartbeat_age_sec;
+  el.innerHTML =
+    '<div class="node-head"><h2>' + label + '</h2>' +
+    '<span class="state ' + (online ? "on" : (info.last_heartbeat ? "off" : "wait")) + '">' +
+    (online ? "Online" : (info.last_heartbeat ? "Offline" : "Waiting")) + "</span></div>" +
+    '<dl class="facts">' +
+    "<dt>Address</dt><dd>" + esc(info.ip || "not reported") + "</dd>" +
+    "<dt>Wi-Fi signal</dt><dd>" + wifiBars(info.wifi_rssi) + (info.wifi_rssi !== null && info.wifi_rssi !== undefined ? info.wifi_rssi + " dBm" : "unknown") + "</dd>" +
+    "<dt>Last heartbeat</dt><dd>" + (hb === null || hb === undefined ? "never" : fmtAge(hb)) + "</dd>" +
+    "<dt>Running for</dt><dd>" + fmtDuration(info.uptime_sec) + "</dd>" +
+    "<dt>Free memory</dt><dd>" + (info.free_heap ? Math.round(info.free_heap / 1024) + " KB" : "unknown") + "</dd>" +
+    "</dl>";
+}
+
+/* ---------- student state helpers ---------- */
+
+function pillClass(d) {
+  if (d.state === "ended") return d.final_status === "PRESENT" ? "ok" : "bad";
+  if (d.state === "in_class") return "ok";
+  if (d.state === "left") return "bad";
+  if (d.state === "out_of_range" || d.state === "arriving" || d.state === "unchecked") return "warn";
+  return "idle";
+}
+function pillText(d) {
+  switch (d.state) {
+    case "ended": return d.final_status === "PRESENT" ? "final: present" : "final: absent";
+    case "in_class": return "in class since " + hms(d.first_present);
+    case "out_of_range": return "out of range " + fmtDuration(d.current_gap_sec);
+    case "left": return "left, out of range " + fmtDuration(d.current_gap_sec);
+    case "arriving": return "arriving";
+    case "unchecked": return "not checked, node silent";
+    default: return "not arrived";
+  }
+}
+
+/* ---------- link diagram ---------- */
+
+function renderDiagram() {
+  const devs = state.devices;
+  const min = state.meta ? state.meta.min_detections : 3;
+  const win = state.meta ? state.meta.presence_window_sec : 30;
+  $("#diagramSub").textContent =
+    "Solid lines mean that node heard the device in the last " + win + " seconds. Thicker means closer to the " + min + " detections needed. This is a connection map, not a floor plan.";
+
+  const W = 760, top = 64, rowH = 70, pad = 24;
+  const H = top + Math.max(devs.length, 1) * rowH + pad;
+  const nb = 108;
+  const cx = W / 2, pw = 250, ph = 44;
+  const n1 = state.nodes.NODE_1, n2 = state.nodes.NODE_2;
+
+  let g = '<svg class="link" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Which node currently hears which device">';
+
+  const box = (x, label, info, color) => {
+    const on = info && info.online;
+    return '<rect class="nodebox" x="' + x + '" y="14" width="' + nb + '" height="' + (H - 28) + '" rx="6" ' +
+      'fill="' + (on ? "#fbfcfb" : "#eef1f0") + '" stroke="' + (on ? color : "#9aa8ad") + '"/>' +
+      '<text x="' + (x + nb / 2) + '" y="42" text-anchor="middle" font-size="18" font-weight="700" ' +
+      'style="fill:' + (on ? color : "#7b8a90") + '">' + label + "</text>" +
+      '<text class="muted" x="' + (x + nb / 2) + '" y="60" text-anchor="middle" font-size="12.5">' + (on ? "online" : "offline") + "</text>";
+  };
+  g += box(14, "Node 1", n1, "#2a5bd7");
+  g += box(W - 14 - nb, "Node 2", n2, "#c4327d");
+
+  if (!devs.length) {
+    g += '<text class="muted" x="' + cx + '" y="' + (top + 28) + '" text-anchor="middle" font-size="14">No registered devices</text>';
+  }
+
+  devs.forEach((d, i) => {
+    const cy = top + i * rowH + ph / 2;
+    const px = cx - pw / 2;
+
+    const wire = (count, color, x1, x2) => {
+      if (!count) {
+        return '<line class="wire quiet" x1="' + x1 + '" y1="' + cy + '" x2="' + x2 + '" y2="' + cy + '"/>';
+      }
+      const w = 1.6 + Math.min(count, min) / min * 4.4;
+      return '<line class="wire" x1="' + x1 + '" y1="' + cy + '" x2="' + x2 + '" y2="' + cy +
+        '" stroke="' + color + '" stroke-width="' + w.toFixed(1) + '"/>' +
+        '<text class="muted" x="' + ((x1 + x2) / 2) + '" y="' + (cy - 9) + '" text-anchor="middle" font-size="12">' + count + " heard</text>";
+    };
+
+    g += wire(d.node_1_detections, "#2a5bd7", 14 + nb, px);
+    g += wire(d.node_2_detections, "#c4327d", px + pw, W - 14 - nb);
+
+    g += '<rect class="pill ' + pillClass(d) + '" x="' + px + '" y="' + (cy - ph / 2) + '" width="' + pw + '" height="' + ph + '" rx="22"/>' +
+      '<text x="' + cx + '" y="' + (cy - 3) + '" text-anchor="middle" font-size="14.5" font-weight="700">' + esc(d.name) + "</text>" +
+      '<text class="muted" x="' + cx + '" y="' + (cy + 13) + '" text-anchor="middle" font-size="12">' + esc(pillText(d)) + "</text>";
+  });
+
+  g += "</svg>";
+  $("#diagram").innerHTML = g;
+}
+
+/* ---------- students ---------- */
+
+function spark(values, color) {
+  const W = 200, H = 30;
+  if (!values || values.length < 2) {
+    return '<svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+      '<line x1="0" y1="' + H / 2 + '" x2="' + W + '" y2="' + H / 2 + '" stroke="#c9d5d3" stroke-width="1.5" stroke-dasharray="3 5"/></svg>';
+  }
+  const lo = -100, hi = -30;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * (W - 4) + 2;
+    const y = H - 3 - ((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * (H - 6);
+    return x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
+  const last = pts.split(" ").pop().split(",");
+  return '<svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+    '<polyline fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' + pts + '"/>' +
+    '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="' + color + '"/></svg>';
+}
+
+function obsBlock(cname, label, count, min, history, color) {
+  const shown = Math.min(count, Math.max(min, 1));
+  let pips = "";
+  for (let i = 0; i < Math.max(min, 1); i++) pips += '<i class="' + (i < shown ? "on" : "") + '"></i>';
+  const last = history && history.length ? history[history.length - 1] : null;
+  const win = state.meta ? state.meta.presence_window_sec : 30;
+  const stale = count === 0;
+  const sigText = last === null ? "not heard"
+    : stale ? "not heard for " + win + " s (last " + last + " dBm)"
+    : last + " dBm (latest)";
+  return '<div class="obs ' + cname + '"><span class="nm">' + label + "</span>" +
+    '<span class="pips" title="Detections in the current window">' + pips + "<b>" + (count >= min ? count + " heard, enough" : count + " of " + min) + "</b></span>" +
+    '<span class="spark">' + spark(history, stale ? "#9aa8ad" : color) + "</span>" +
+    '<span class="nm" style="font-weight:400;color:var(--ink-soft)">Signal</span>' +
+    "<span>" + sigText + "</span></div>";
+}
+
+function stateBadge(d) {
+  const c = cls();
+  const badge = (k, t) => '<span class="badge ' + k + '">' + t + "</span>";
+  const when = (t) => '<span class="when">' + esc(t) + "</span>";
+  switch (d.state) {
+    case "ended":
+      return badge(d.final_status === "PRESENT" ? "ok" : "bad", d.final_status === "PRESENT" ? "Present" : "Absent") + when(d.final_reason || "");
+    case "in_class":
+      return badge("ok", "In class") + when("arrived " + hms(d.first_present));
+    case "arriving":
+      return badge("live", "Arriving") + when("being checked");
+    case "unchecked":
+      return badge("no", "Not checked") + when(c && c.paused_reason ? c.paused_reason : "a node is not reporting");
+    case "out_of_range":
+      return badge("live", "Out of range") + when("for " + fmtDuration(d.current_gap_sec) + " (limit " + fmtDuration(c ? c.max_absence_sec : 300) + ")");
+    case "left":
+      return badge("bad", "Left the room") + when("out of range for " + fmtDuration(d.current_gap_sec));
+    default:
+      return badge("no", "Not arrived") + when(d.last_seen ? "last heard " + fmtAge(ageSec(d.last_seen)) : "waiting for the phone");
+  }
+}
+
+function timelineHTML(cells) {
+  if (!cells || !cells.length) return '<span class="tl-empty">Waiting for the first check.</span>';
+  const bad = [179, 38, 30], ok = [28, 124, 84];
+  const mix = (v) => "rgb(" + [0, 1, 2].map((i) => Math.round(bad[i] + (ok[i] - bad[i]) * v)).join(",") + ")";
+  return '<div class="tl" aria-hidden="true">' + cells.map((v) => {
+    if (v === null) return '<i style="height:8%;background:#c9d5d3"></i>';
+    return '<i style="height:' + Math.round(14 + v * 86) + "%;background:" + mix(v) + '"></i>';
+  }).join("") + "</div>";
+}
+
+function renderDevices() {
+  const min = state.meta ? state.meta.min_detections : 3;
+  const c = cls();
+  const host = $("#devices");
+  if (!state.devices.length) {
+    host.innerHTML = '<p class="empty">No registered devices configured in server.py.</p>';
+    return;
+  }
+  host.innerHTML = state.devices.map((d) => {
+    const ended = d.state === "ended";
+    const status = ended ? d.final_status : d.projected_status;
+    const proj = ended
+      ? "<b class=\"" + (status === "PRESENT" ? "ok" : "bad") + '">Final: ' + status + "</b>"
+      : d.checks_counted === 0
+        ? "No checks counted yet"
+        : "<b class=\"" + (status === "PRESENT" ? "ok" : "bad") + '">If the class ended now: ' + status + "</b>";
+    const why = ended ? d.final_reason : d.reason;
+    const facts = d.checks_counted
+      ? d.presence_percent + "% in range (" + d.checks_present + " of " + d.checks_counted + " checks)" +
+        (d.checks_skipped ? " · " + d.checks_skipped + " skipped while a node was not reporting" : "") +
+        " · longest absence " + fmtDuration(d.longest_absence_sec) + " · " + proj + (d.checks_counted ? " (" + esc(why) + ")" : "")
+      : proj;
+    return '<div class="student"><div class="row">' +
+      '<div class="who"><b>' + esc(d.name) + "</b><span>" + esc(d.roll_no) + " &nbsp;/&nbsp; advertises as " + esc(d.device_name) + "</span></div>" +
+      "<div>" + stateBadge(d) + "</div>" +
+      obsBlock("n1", "Node 1", d.node_1_detections, min, d.rssi_history_node_1, "#2a5bd7") +
+      obsBlock("n2", "Node 2", d.node_2_detections, min, d.rssi_history_node_2, "#c4327d") +
+      "</div>" +
+      '<div class="extra"><span class="lbl">Presence over the class</span>' + timelineHTML(d.timeline) +
+      '<span class="facts-line">' + facts + "</span>" +
+      '<span class="key">Tall bar = in range, short bar = out of range, grey dot = check skipped. Oldest on the left.</span></div>' +
+      "</div>";
+  }).join("");
+}
+
+/* ---------- headline, banners, controls ---------- */
+
+function renderHeadline() {
+  const c = cls();
+  const devs = state.devices;
+  const total = devs.length;
+  const n1 = state.nodes.NODE_1 && state.nodes.NODE_1.online;
+  const n2 = state.nodes.NODE_2 && state.nodes.NODE_2.online;
+  const count = (s) => devs.filter((d) => d.state === s).length;
+
+  if (!total) { $("#headline").textContent = "No registered devices"; $("#headlineSub").textContent = ""; return; }
+
+  if (c && !c.active) {
+    const present = devs.filter((d) => d.final_status === "PRESENT").length;
+    $("#headline").textContent = present + " present, " + (total - present) + " absent";
+    $("#headlineSub").textContent = "Class ended at " + hms(c.ended_at) + " after " + fmtDuration(c.elapsed_sec) + ". Results are saved to the attendance log.";
+    return;
+  }
+
+  if (c && c.paused_reason) {
+    $("#headline").textContent = "Attendance checks paused";
+    const gone = count("left");
+    $("#headlineSub").textContent = c.paused_reason + ". Nobody is marked absent for this time." + (gone ? " " + gone + " left the room earlier." : "");
+    return;
+  }
+
+  $("#headline").textContent = count("in_class") + " of " + total + " in class now";
+  const parts = [];
+  const left = count("left"), out = count("out_of_range"), away = count("not_arrived") + count("arriving");
+  if (left) parts.push(left + " left the room");
+  if (out) parts.push(out + " out of range");
+  if (away) parts.push(away + " not arrived");
+  let sub = parts.length ? parts.join(", ") + ". " : "";
+  if (n1 && n2) sub += "Both nodes are online.";
+  else if (!n1 && !n2) sub += "Neither node is reporting, so attendance checks are paused.";
+  else sub += (n1 ? "Node 2" : "Node 1") + " is offline, so attendance checks are paused and nobody is penalised.";
+  $("#headlineSub").textContent = sub;
+}
+
+function renderBanners() {
+  const c = cls();
+  const paused = $("#pausedBanner"), ended = $("#endedBanner");
+  if (c && c.active && c.paused_reason) {
+    paused.textContent = "Attendance checks are paused: " + c.paused_reason + ". Nobody is marked absent for this time.";
+    paused.classList.add("show");
+  } else {
+    paused.classList.remove("show");
+  }
+  if (c && !c.active) {
+    ended.textContent = "This class has ended and its attendance was saved. Press Start new class to begin the next one.";
+    ended.classList.add("show");
+  } else {
+    ended.classList.remove("show");
+  }
+}
+
+function renderControls() {
+  const c = cls();
+  if (!c) return;
+  const btn = $("#classBtn");
+  btn.textContent = c.active ? "End class and save" : "Start new class";
+  $("#discardBtn").style.display = c.active ? "" : "none";
+  $("#session").textContent = c.active
+    ? "Class running for " + fmtDuration(c.elapsed_sec) + (c.remaining_sec !== null ? " · ends in " + fmtDuration(c.remaining_sec) : "") + " · check every " + c.check_interval_sec + " s"
+    : "Class ended after " + fmtDuration(c.elapsed_sec);
+  $("#endText").textContent =
+    "Each student is marked present or absent from how long they stayed in range. Press this while students are still in the room, because anyone already out of range for " +
+    fmtDuration(c.max_absence_sec) + " or more is marked absent.";
+  $("#rulesText").textContent =
+    "Every " + c.check_interval_sec + " seconds the server checks each phone. When the class ends, a student is Present if they were in range at least " +
+    c.min_presence_percent + "% of the time and never out of range for " + fmtDuration(c.max_absence_sec) +
+    " in a row after arriving. Otherwise they are Absent. Checks are skipped while a node is not reporting.";
+}
+
+/* ---------- feed, history, toasts ---------- */
+
+function toast(msg, kind) {
+  const el = document.createElement("div");
+  el.className = "toast" + (kind === "bad" ? " bad" : "");
+  el.textContent = msg;
+  $("#toasts").appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
+
+const TOAST_KINDS = { left: "bad", returned: "ok" };
+
+function renderFeed(list) {
+  const host = $("#feed");
+  if (!list.length) {
+    host.innerHTML = '<li class="empty">Nothing yet. Events appear when nodes connect and students arrive or leave.</li>';
+  } else {
+    host.innerHTML = list.map((e) =>
+      '<li class="' + esc(e.kind) + '"><time>' + esc(hms(e.time)) + '</time><span class="msg">' + esc(e.message) + "</span></li>"
+    ).join("");
+  }
+  for (const e of list) {
+    const key = e.time + "|" + e.message;
+    if (!state.seenEvents.has(key)) {
+      state.seenEvents.add(key);
+      if (!state.firstFeed && TOAST_KINDS[e.kind]) toast(e.message, TOAST_KINDS[e.kind]);
+      // Manual class actions already toast immediately; only announce an automatic end here.
+      if (!state.firstFeed && e.kind === "class" && /automatically/.test(e.message)) toast(e.message, "ok");
+    }
+  }
+  state.firstFeed = false;
+}
+
+function renderHistory(rows) {
+  const host = $("#history");
+  if (!rows.length) {
+    host.innerHTML = '<tr><td colspan="7" class="empty">No class has been saved yet.</td></tr>';
+    return;
+  }
+  host.innerHTML = rows.map((r) => {
+    const present = r.status === "PRESENT";
+    return "<tr><td>" + esc(localDateTime(r.class_ended)) + "</td>" +
+      "<td>" + esc(r.student_name) + "</td><td>" + esc(r.roll_no) + "</td>" +
+      '<td class="num">' + esc(r.presence_percent) + '%</td><td class="num">' + esc(fmtDuration(Number(r.longest_absence_sec))) + "</td>" +
+      '<td><span class="badge ' + (present ? "ok" : "bad") + '">' + esc(present ? "Present" : "Absent") + "</span></td>" +
+      "<td>" + esc(r.reason) + "</td></tr>";
+  }).join("");
+}
+
+/* ---------- polling ---------- */
+
+async function pollStatus() {
+  try {
+    const s = await getJSON("/api/status");
+    state.meta = s._meta || state.meta;
+    if (s._meta) {
+      state.metaMs = Date.parse(s._meta.server_time);
+      state.metaAt = performance.now();
+    }
+    state.nodes.NODE_1 = s.NODE_1 || null;
+    state.nodes.NODE_2 = s.NODE_2 || null;
+    renderNode($("#node1"), "NODE_1", "Node 1", state.nodes.NODE_1);
+    renderNode($("#node2"), "NODE_2", "Node 2", state.nodes.NODE_2);
+    renderControls();
+    renderBanners();
+    renderHeadline();
+    renderDiagram();
+    markReachable(true);
+  } catch (err) {
+    markReachable(false);
+  }
+}
+
+async function pollDevices() {
+  try {
+    state.devices = await getJSON("/api/attendance");
+    renderDevices();
+    renderHeadline();
+    renderDiagram();
+    markReachable(true);
+  } catch (err) {
+    markReachable(false);
+  }
+}
+
+async function pollFeed() {
+  try { renderFeed(await getJSON("/api/events")); } catch (err) { /* status poll shows the banner */ }
+}
+
+async function pollHistory() {
+  try { renderHistory(await getJSON("/api/history")); } catch (err) { /* status poll shows the banner */ }
+}
+
+function refreshAll() {
+  return Promise.all([pollStatus(), pollDevices(), pollFeed(), pollHistory()]);
+}
+
+function tickClock() {
+  $("#clock").textContent = new Date().toLocaleTimeString([], { hour12: false });
+}
+
+/* ---------- class controls ---------- */
+
+async function post(url) {
+  const res = await fetch(url, { method: "POST" });
+  let body = null;
+  try { body = await res.json(); } catch (e) { /* no body */ }
+  if (!res.ok) throw new Error((body && body.message) || "request failed");
+  return body;
+}
+
+const endDlg = $("#endDialog"), discardDlg = $("#discardDialog");
+
+$("#classBtn").addEventListener("click", async () => {
+  const c = cls();
+  if (c && c.active) { endDlg.showModal(); return; }
+  try {
+    await post("/api/class/start");
+    toast("New class started", "ok");
+    await refreshAll();
+  } catch (err) {
+    toast("Could not start a class: " + err.message, "bad");
+  }
+});
+$("#cancelEnd").addEventListener("click", () => endDlg.close());
+$("#confirmEnd").addEventListener("click", async () => {
+  endDlg.close();
+  try {
+    const out = await post("/api/class/end");
+    const present = out.results.filter((r) => r.status === "PRESENT").length;
+    toast("Class saved: " + present + " present, " + (out.results.length - present) + " absent" + (out.saved ? "" : " (CSV NOT saved)"), out.saved ? "ok" : "bad");
+    await refreshAll();
+  } catch (err) {
+    toast("Could not end the class: " + err.message, "bad");
+  }
+});
+
+$("#discardBtn").addEventListener("click", () => discardDlg.showModal());
+$("#cancelDiscard").addEventListener("click", () => discardDlg.close());
+$("#confirmDiscard").addEventListener("click", async () => {
+  discardDlg.close();
+  try {
+    await post("/api/reset");
+    toast("Class discarded, new class started", "ok");
+    await refreshAll();
+  } catch (err) {
+    toast("Could not discard the class: " + err.message, "bad");
+  }
+});
+
+/* ---------- start ---------- */
+
+tickClock();
+setInterval(tickClock, 1000);
+refreshAll();
+setInterval(pollStatus, 2000);
+setInterval(pollDevices, 2000);
+setInterval(pollFeed, 3000);
+setInterval(pollHistory, 5000);
+</script>
+</body>
+</html>
