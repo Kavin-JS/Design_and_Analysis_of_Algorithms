@@ -6,7 +6,7 @@ on:
 jobs:
   record-dashboard:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -31,12 +31,21 @@ jobs:
       - name: Run Playwright Script
         run: node record.js
 
-      - name: Convert WebM to MP4 and Burn Subtitles
+      - name: Convert WebM to MP4 and Burn Subtitles (Demo)
         run: |
-          ffmpeg -i raw_recording.webm -vf "subtitles=subtitles.srt" -c:v libx264 -preset fast -y BLE_Classroom_Presence_Demo.mp4
+          ffmpeg -i raw_recording.webm -vf "subtitles=subtitles.srt" -c:v libx264 -preset fast -y demo.mp4
 
-      - name: Upload MP4 Artifact
+      - name: Stitch Videos Together
+        # Creates a text file listing the videos in order, then concatenates them
+        run: |
+          echo "file '1.mp4'" > list.txt
+          echo "file '2.mp4'" >> list.txt
+          echo "file 'demo.mp4'" >> list.txt
+          # Re-encode slightly to ensure all files share the exact same framerate, resolution, and format
+          ffmpeg -f concat -safe 0 -i list.txt -c:v libx264 -preset fast -c:a aac -strict experimental -y Final_Submission.mp4
+
+      - name: Upload Final Submission Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BLE_Classroom_Presence_Demo
-          path: BLE_Classroom_Presence_Demo.mp4
+          name: Final_Submission_Video
+          path: Final_Submission.mp4
